@@ -146,5 +146,6 @@
         $final_string .= " and zero cents";
     }
 
+    $final_string = ucfirst($final_string);
     echo $final_string;
 ?>
