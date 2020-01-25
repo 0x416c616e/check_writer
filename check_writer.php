@@ -51,7 +51,7 @@
 
             case 4:
                 //thousands
-                $word = ($num == 0 ? "" : ($ones[$num] . " " . $big_nums[0]));
+                $word = ($num == 0 ? $big_nums[0] : ($ones[$num] . " " . $big_nums[0]));
                 break;
 
             case 1:
@@ -69,83 +69,101 @@
         $position -= 1;
         return $word;
     }
-
-    //get the amount from the user
-    $num_amount = $_GET["amount"]; //check.php?amount=5000.00
-
-    //convert amount to string
-    $str_representation = strval($num_amount);
-
-    //get rid of commas, if any
-    $str_representation = str_replace(",", "", $str_representation);
-
-    $has_decimal = false;
-
-    //check if there's a decimal in the number
-    if (strpos($str_representation, ".") !== false) {
-        $has_decimal = true;
-    }
-
-    $decimal = "";
-    //get rid of decimal from last part of string, if it has one
-    if ($has_decimal) {
-        $len = strlen($str_representation);
-        //example number: 100.00
-        //if length = 6, means indices are 0-5
-        //for a length of 6, that means 0, 1, and 2 are ok
-        //in other words, 0 to (strlen - 4)
-        //decimal is three things: ., then digit 1, then digit 2
-        //i.e. .03 for 3 cents
-
-        //decimal only:
-        $decimal = substr($str_representation, ($len - 2), ($len - 1));
-
-        //str_rep takes off the decimal, as the decimal is now stored in $decimal
-        $str_representation = substr($str_representation, 0, ($len - 3));
-    }
-
-    //now left with $decimal for decimal place
-    //and str_representation only has the dollar amount, no cents
-
-    //length of dollar-only amount, no cents
-    $amount_len = strlen($str_representation);
-
-    //convert string to array of chars
-    $str_array = str_split($str_representation);
-
-    //
-    $final_string = "";
-    //num_position means ones place, tens place, hundreds place, etc.
-    $num_position = count($str_array);
-
-    foreach($str_array as $i) {
-        $final_string .= strval(strnum_to_word($i, $num_position));
-    }
-    if ($final_string == "") {
-        $final_string = "zero";
-    }
-    $final_string .= " dollars";
-    
-    if ($has_decimal) {
-        $dec_array = str_split($decimal);
-        $final_string .= " and ";
-        $dec_length = 2;
-        $dec_string = "";
-        foreach(range(0,1) as $i) {
-            $dec_string .= strnum_to_word($dec_array[$i], $dec_length);
-        }
-        if ($dec_string == "") {
-            $final_string .= " zero";
+    function main ($arg_amount) {
+        //get the amount from the user
+        $num_amount = "";
+        if (isset($_GET["amount"])) {
+            $num_amount = $_GET["amount"]; //check.php?amount=5000.00
         } else {
-            $final_string .= $dec_string;
+            $num_amount = $arg_amount;
         }
-       
-        $final_string .= " cent";
-        $final_string .= ($dec_string == " one" ? "" : "s");
-    } else {
-        $final_string .= " and zero cents";
+
+        //convert amount to string
+        $str_representation = strval($num_amount);
+
+        //get rid of commas, if any
+        $str_representation = str_replace(",", "", $str_representation);
+
+        $has_decimal = false;
+
+        //check if there's a decimal in the number
+        if (strpos($str_representation, ".") !== false) {
+            $has_decimal = true;
+        }
+
+        $decimal = "";
+        //get rid of decimal from last part of string, if it has one
+        if ($has_decimal) {
+            $len = strlen($str_representation);
+            //example number: 100.00
+            //if length = 6, means indices are 0-5
+            //for a length of 6, that means 0, 1, and 2 are ok
+            //in other words, 0 to (strlen - 4)
+            //decimal is three things: ., then digit 1, then digit 2
+            //i.e. .03 for 3 cents
+
+            //decimal only:
+            $decimal = substr($str_representation, ($len - 2), ($len - 1));
+
+            //str_rep takes off the decimal, as the decimal is now stored in $decimal
+            $str_representation = substr($str_representation, 0, ($len - 3));
+        }
+
+        //now left with $decimal for decimal place
+        //and str_representation only has the dollar amount, no cents
+
+        //length of dollar-only amount, no cents
+        $amount_len = strlen($str_representation);
+
+        //convert string to array of chars
+        $str_array = str_split($str_representation);
+
+        //
+        $final_string = "";
+        //num_position means ones place, tens place, hundreds place, etc.
+        $num_position = count($str_array);
+
+        foreach($str_array as $i) {
+            $final_string .= strval(strnum_to_word($i, $num_position));
+        }
+        if ($final_string == "") {
+            $final_string = "zero";
+        }
+        $final_string .= " dollars";
+        
+        if ($has_decimal) {
+            $dec_array = str_split($decimal);
+            $final_string .= " and ";
+            $dec_length = 2;
+            $dec_string = "";
+            foreach(range(0,1) as $i) {
+                $dec_string .= strnum_to_word($dec_array[$i], $dec_length);
+            }
+            if ($dec_string == "") {
+                $final_string .= " zero";
+            } else {
+                $final_string .= $dec_string;
+            }
+        
+            $final_string .= " cent";
+            $final_string .= ($dec_string == " one" ? "" : "s");
+        } else {
+            $final_string .= " and zero cents";
+        }
+
+        //it used to write "ten one" instead of "eleven",
+        //"ten two" instead of "twelve", and so on
+        //so this does find-and-replace operations to fix it
+        $incorrect = explode(",", "ten one,ten two,ten three,ten four,ten five,ten six,ten seven,ten eight,ten nine");
+        $correct = explode(" ", "eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen");
+        foreach(range(0, 8) as $i) {
+            $final_string = str_replace($incorrect[$i], $correct[$i], $final_string);
+        }
+
+        $final_string = ucfirst($final_string);
+        echo $final_string;
     }
 
-    $final_string = ucfirst($final_string);
-    echo $final_string;
+    main($_GET["amount"]);
+
 ?>
