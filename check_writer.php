@@ -1,14 +1,5 @@
 <?php
 
-
-    //disable this in production
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-    //these two lines are only good for debugging/developing
-
-
-
-
     //Check Writer
     //take a float and turn it into a written version of it
     //i.e. 54363.54 becomes:
@@ -17,16 +8,11 @@
     //can be passed somethin like 99,299.05 or 99299.05
     //may or may not have cents, like 5000 or 5,000 instead of 5000.00
 
-    //note to self: ucfirst() to make first letter of string uppercase
-
-
-
-
-    //number represented as string
-    //i.e. strnum_to_word("5", 3) means 5 in the 3rd place
-    //3rd = hundreds place
-    //2nd = tens
-    //1st = ones
+    //take a string representation of a single digit
+    //and its position in a number (1 = tens, 2 = hundreds, etc)
+    //and then turn it into an English spelling of the number
+    //i.e. 1 in the thousands place return "one thousand"
+    //example usage: some_string .= strnum_to_word("1", 3);
     function strnum_to_word($str_rep, &$position) {       
         //written number arrays
         $places = explode(",", "ones,tens,hundreds,thousands,ten thousands,hundred thousands");
@@ -34,6 +20,8 @@
         $tens = explode(" ", "ten twenty thirty forty fifty sixty seventy eighty ninety");
         $big_nums = array("thousand", "hundred");
 
+        //the english words depend on the position of the number
+        //position 1 = ones, 2 = tens, 3 = hundreds, 4 = thousands, etc.
         $word = "";
         $num = intval($str_rep);
         switch ($position) {
@@ -69,6 +57,7 @@
         $position -= 1;
         return $word;
     }
+    //where everything happens
     function main ($arg_amount) {
         //get the amount from the user
         $num_amount = "";
@@ -82,7 +71,11 @@
         $str_representation = strval($num_amount);
 
         //get rid of commas, if any
+        //i.e. 5,000 -> 5000
         $str_representation = str_replace(",", "", $str_representation);
+
+        //get rid of dollar sign, if there is one
+        $str_representation = str_replace("$", "", $str_representation);
 
         $has_decimal = false;
 
@@ -98,9 +91,7 @@
             //example number: 100.00
             //if length = 6, means indices are 0-5
             //for a length of 6, that means 0, 1, and 2 are ok
-            //in other words, 0 to (strlen - 4)
-            //decimal is three things: ., then digit 1, then digit 2
-            //i.e. .03 for 3 cents
+            //because 3 is the decimal point, and 4 and 5 are the cent values
 
             //decimal only:
             $decimal = substr($str_representation, ($len - 2), ($len - 1));
@@ -129,7 +120,10 @@
         if ($final_string == "") {
             $final_string = "zero";
         }
-        $final_string .= " dollars";
+        $final_string .= " dollar";
+        if ($num_amount >= 2.0) {
+            $final_string .= "s";
+        }
         
         if ($has_decimal) {
             $dec_array = str_split($decimal);
@@ -164,6 +158,8 @@
         echo $final_string;
     }
 
-    main($_GET["amount"]);
+    //run main with query string and error suppression
+    //in case the script is invoked without the proper GET parameter
+    @main($_GET["amount"]);
 
 ?>
