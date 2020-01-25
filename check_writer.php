@@ -1,52 +1,37 @@
 <?php
-
-    //Check Writer
-    //take a float and turn it into a written version of it
-    //i.e. 54363.54 becomes:
-    //"Fifty Four Thousand Three Hundred Sixty Three Dollars and 54 cents"
-    //from $0 to $999,999.99
-    //can be passed somethin like 99,299.05 or 99299.05
-    //may or may not have cents, like 5000 or 5,000 instead of 5000.00
-
-    //take a string representation of a single digit
-    //and its position in a number (1 = tens, 2 = hundreds, etc)
-    //and then turn it into an English spelling of the number
-    //i.e. 1 in the thousands place return "one thousand"
-    //example usage: some_string .= strnum_to_word("1", 3);
+    //function that turns a single-digit number
+    //(which is a string, not an int) and its
+    //position in a bigger number (i.e. 1 = ones place)
+    //into a written out English form, such as:
+    //strnum_to_word("5", 2) returns "fifty" because 
+    //it's 5 in the tens place
     function strnum_to_word($str_rep, &$position) {       
-        //written number arrays
         $places = explode(",", "ones,tens,hundreds,thousands,ten thousands,hundred thousands");
         $ones = explode(" ", "zero one two three four five six seven eight nine");
         $tens = explode(" ", "ten twenty thirty forty fifty sixty seventy eighty ninety");
         $big_nums = array("thousand", "hundred");
-
-        //the english words depend on the position of the number
-        //position 1 = ones, 2 = tens, 3 = hundreds, 4 = thousands, etc.
         $word = "";
         $num = intval($str_rep);
+        //do different things based on the position
         switch ($position) {
             case 6:
             case 3:
-                //hundred thousands or hundreds
+                //hundred thousands and hundreds
                 $word = ($num == 0 ? "" : ($ones[$num] . " " . $big_nums[1]));
                 break;
-
             case 5:
             case 2:
-                //ten thousands or tens
+                //ten thousands and tens
                 $word = ($num == 0 ? "" : ($tens[$num - 1]));
                 break;
-
             case 4:
                 //thousands
                 $word = ($num == 0 ? $big_nums[0] : ($ones[$num] . " " . $big_nums[0]));
                 break;
-
             case 1:
-                //ones
+                //tens
                 $word = ($num == 0 ? "" : ($ones[$num]));
                 break;
-
             default:
                 echo "error";
                 break;
@@ -57,79 +42,61 @@
         $position -= 1;
         return $word;
     }
-    //where everything happens
+    //main which does everything
     function main ($arg_amount) {
-        //get the amount from the user
+        //getting query string input
         $num_amount = "";
         if (isset($_GET["amount"])) {
-            $num_amount = $_GET["amount"]; //check.php?amount=5000.00
+            $num_amount = $_GET["amount"];
         } else {
             $num_amount = $arg_amount;
         }
-
-        //convert amount to string
+        //converting numberic input to string
         $str_representation = strval($num_amount);
-
-        //get rid of commas, if any
-        //i.e. 5,000 -> 5000
+        //getting rid of unnecessary characters
         $str_representation = str_replace(",", "", $str_representation);
-
-        //get rid of dollar sign, if there is one
         $str_representation = str_replace("$", "", $str_representation);
-
         $has_decimal = false;
-
-        //check if there's a decimal in the number
+        //doing stuff if there's a decimal
         if (strpos($str_representation, ".") !== false) {
             $has_decimal = true;
         }
-
         $decimal = "";
-        //get rid of decimal from last part of string, if it has one
+        //separate string representation of user input number
+        //into two numbers: the whole numbers and the decimal numbers
         if ($has_decimal) {
             $len = strlen($str_representation);
-            //example number: 100.00
-            //if length = 6, means indices are 0-5
-            //for a length of 6, that means 0, 1, and 2 are ok
-            //because 3 is the decimal point, and 4 and 5 are the cent values
-
-            //decimal only:
             $decimal = substr($str_representation, ($len - 2), ($len - 1));
-
-            //str_rep takes off the decimal, as the decimal is now stored in $decimal
             $str_representation = substr($str_representation, 0, ($len - 3));
         }
-
-        //now left with $decimal for decimal place
-        //and str_representation only has the dollar amount, no cents
-
-        //length of dollar-only amount, no cents
         $amount_len = strlen($str_representation);
-
-        //convert string to array of chars
+        //turn string to char array because each digit
+        //will be converted into words separately
         $str_array = str_split($str_representation);
-
-        //
+        //starting to build the final written string
         $final_string = "";
-        //num_position means ones place, tens place, hundreds place, etc.
         $num_position = count($str_array);
-
+        //for every digit in the number, convert it to an English written word
         foreach($str_array as $i) {
             $final_string .= strval(strnum_to_word($i, $num_position));
         }
+        //edge case for zero dollars
         if ($final_string == "") {
             $final_string = "zero";
         }
         $final_string .= " dollar";
+        //if more than $1.99, put S for plural dollars
         if ($num_amount >= 2.0) {
             $final_string .= "s";
         }
-        
+        //decimal-writing stuff
         if ($has_decimal) {
+            //decimals to char array
             $dec_array = str_split($decimal);
             $final_string .= " and ";
             $dec_length = 2;
             $dec_string = "";
+            //convert each of the two decimal digits to words
             foreach(range(0,1) as $i) {
                 $dec_string .= strnum_to_word($dec_array[$i], $dec_length);
             }
@@ -138,28 +105,25 @@
             } else {
                 $final_string .= $dec_string;
             }
-        
             $final_string .= " cent";
+            //edge case for one cent plurality
             $final_string .= ($dec_string == " one" ? "" : "s");
         } else {
+            //no decimal
             $final_string .= " and zero cents";
         }
-
-        //it used to write "ten one" instead of "eleven",
-        //"ten two" instead of "twelve", and so on
-        //so this does find-and-replace operations to fix it
+        //fixing an oddity
+        //the program would write stuff like "ten one" instead of "eleven" or "ten two" instead of "twelve"
+        //so this find-and-replace operation fixes that
         $incorrect = explode(",", "ten one,ten two,ten three,ten four,ten five,ten six,ten seven,ten eight,ten nine");
         $correct = explode(" ", "eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen");
         foreach(range(0, 8) as $i) {
             $final_string = str_replace($incorrect[$i], $correct[$i], $final_string);
         }
-
+        //capitalize and display final result
         $final_string = ucfirst($final_string);
         echo $final_string;
     }
-
-    //run main with query string and error suppression
-    //in case the script is invoked without the proper GET parameter
+    //run main with error suppression and pass GET parameter as arg
     @main($_GET["amount"]);
-
 ?>
